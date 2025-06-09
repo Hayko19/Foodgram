@@ -1,26 +1,26 @@
 import base64
+
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from .models import (
-    Recipe,
-    MyUser,
-    Tag,
-    RecipeIngredient,
-    Ingredient,
-    ShoppingCart,
-    Favorite,
-    Subscription
-)
 from rest_framework.exceptions import ValidationError
+
+from .models import (Favorite, Ingredient, MyUser, Recipe, RecipeIngredient,
+                     ShoppingCart, Subscription, Tag)
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для краткого отображения рецепта.
+    """
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class Base64ImageField(serializers.ImageField):
+    """
+    Сериализатор для обработки изображений в формате base64.
+    """
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
@@ -32,6 +32,10 @@ class Base64ImageField(serializers.ImageField):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для создания пользователя.
+    Он используется для регистрации нового пользователя.
+    """
     class Meta:
         model = MyUser
         fields = [
@@ -56,6 +60,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserListSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели MyUser.
+    Он используется для отображения информации о пользователе.
+    """
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
 
@@ -91,12 +99,22 @@ class UserAvatarSerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Tag.
+    Он используется для отображения информации о тегах.
+    """
     class Meta:
         model = Tag
         fields = ['id', 'name', 'slug']
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели RecipeIngredient.
+    Он используется для отображения информации об ингредиентах в рецепте.
+    Он включает в себя поля для идентификатора, названия, единицы измерения
+    и количества ингредиента.
+    """
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
     measurement_unit = serializers.ReadOnlyField(
@@ -110,6 +128,12 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Recipe.
+    Он используется для отображения информации о рецепте.
+    Он включает в себя теги, автора, ингредиенты и поля для избранного
+    и корзины покупок.
+    """
     tags = TagSerializer(many=True, read_only=True)
     author = UserListSerializer(read_only=True)
     ingredients = IngredientInRecipeSerializer(
@@ -147,6 +171,11 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Recipe.
+    Он используется для создания и обновления рецептов.
+    Он также включает в себя валидацию ингредиентов и тегов.
+    """
     ingredients = serializers.ListField(
         child=serializers.DictField(),
         write_only=True
@@ -294,6 +323,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели ShoppingCart.
+    Он используется для отображения информации о рецептах в корзине покупок.
+    """
     id = serializers.ReadOnlyField(source='recipe.id')
     name = serializers.ReadOnlyField(source='recipe.name')
     image = serializers.ImageField(source='recipe.image', read_only=True)
@@ -305,6 +338,10 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Favorite.
+    Он используется для отображения информации о рецептах в избранном.
+    """
     id = serializers.ReadOnlyField(source='recipe.id')
     name = serializers.ReadOnlyField(source='recipe.name')
     image = serializers.ImageField(source='recipe.image', read_only=True)
@@ -316,6 +353,10 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Subscription.
+    Он используется для отображения информации о подписках пользователя.
+    """
     email = serializers.EmailField(source='author.email', read_only=True)
     id = serializers.IntegerField(source='author.id', read_only=True)
     username = serializers.CharField(source='author.username', read_only=True)
@@ -372,6 +413,9 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
 
 class IngredientSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для модели Ingredient.
+    """
     class Meta:
         model = Ingredient
         fields = ['id', 'name', 'measurement_unit']

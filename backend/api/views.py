@@ -1,33 +1,21 @@
-from rest_framework import viewsets, permissions, generics, status
+from collections import defaultdict
+
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponse
-from collections import defaultdict
+
 from .filters import RecipeFilter
-from .models import (
-    MyUser,
-    Tag,
-    Recipe,
-    ShoppingCart,
-    Favorite,
-    Subscription,
-    Ingredient
-)
-from .serializers import (
-    UserListSerializer,
-    TagSerializer,
-    RecipeSerializer,
-    RecipeReadSerializer,
-    UserAvatarSerializer,
-    ShoppingCartSerializer,
-    FavoriteSerializer,
-    SubscriptionSerializer,
-    IngredientSerializer,
-    UserCreateSerializer
-)
+from .models import (Favorite, Ingredient, MyUser, Recipe, ShoppingCart,
+                     Subscription, Tag)
+from .serializers import (FavoriteSerializer, IngredientSerializer,
+                          RecipeReadSerializer, RecipeSerializer,
+                          ShoppingCartSerializer, SubscriptionSerializer,
+                          TagSerializer, UserAvatarSerializer,
+                          UserCreateSerializer, UserListSerializer)
 
 
 def short_link_redirect(request, short_code):
@@ -36,6 +24,10 @@ def short_link_redirect(request, short_code):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet для просмотра ингредиентов.
+    Позволяет получать список и детали ингредиентов.
+    """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
@@ -50,6 +42,10 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class UserAvatarUpdateView(generics.UpdateAPIView):
+    """
+    View для обновления аватара пользователя.
+    Позволяет пользователю загрузить новый аватар.
+    """
     serializer_class = UserAvatarSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -63,6 +59,10 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления пользователями.
+    Позволяет создавать, просматривать и редактировать пользователей,
+    """
     queryset = MyUser.objects.all()
     serializer_class = UserListSerializer
     permission_classes = [permissions.AllowAny]
@@ -81,22 +81,18 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
-
         if not user.check_password(current_password):
             return Response(
                 {'current_password': 'Неверный текущий пароль.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         if not new_password:
             return Response(
                 {'new_password': 'Новый пароль обязателен.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         user.set_password(new_password)
         user.save()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -141,7 +137,7 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def subscribe(self, request, pk=None):
         user = request.user
-        author = self.get_object()  # пользователь, на которого подписываются
+        author = self.get_object()
         if user == author:
             return Response(
                 {'detail': 'Нельзя подписаться на самого себя'},
@@ -176,6 +172,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet для работы с тегами.
+    Позволяет получать список тегов и их детали.
+    """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
@@ -183,6 +183,11 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления рецептами.
+    Позволяет создавать, просматривать, редактировать и удалять рецепты.
+    Также поддерживает действия для избранного и списка покупок.
+    """
     queryset = Recipe.objects.all()
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
@@ -207,6 +212,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
             headers=headers
         )
+
+    def destroy(self, request, *args, **kwargs):
+        recipe = self.get_object()
+        if recipe.author != request.user:
+            return Response(
+                {'detail': 'Вы не можете удалять чужие рецепты.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        self.perform_destroy(recipe)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def partial_update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
@@ -242,7 +257,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
         user = request.user
-
         if request.method == 'POST':
             obj, created = ShoppingCart.objects.get_or_create(
                 user=user,
@@ -255,7 +269,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             serializer = ShoppingCartSerializer(obj)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         elif request.method == 'DELETE':
             deleted, _ = ShoppingCart.objects.filter(
                 user=user, recipe=recipe
@@ -277,24 +290,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = request.user
         cart_items = ShoppingCart.objects.filter(user=user)
         ingredients_summary = defaultdict(int)
-
         for cart_item in cart_items:
             recipe = cart_item.recipe
             for ri in recipe.recipe_ingredients.all():
-                key = (ri.ingredient.name, ri.ingredient.unit)
+                key = (ri.ingredient.name, ri.ingredient.measurement_unit)
                 ingredients_summary[key] += ri.amount
-
-        if not ingredients_summary:
-            return Response({"detail": "Корзина покупок пустая."}, status=400)
-
         lines = []
         for (name, unit), amount in ingredients_summary.items():
             lines.append(
                 f"{name}. Единица измерения: {unit}, количество: {amount}."
             )
-
         content = "\n".join(lines)
-
         response = HttpResponse(
             content,
             content_type='text/plain; charset=utf-8'
@@ -326,7 +332,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             serializer = FavoriteSerializer(obj)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         elif request.method == 'DELETE':
             deleted, _ = Favorite.objects.filter(
                 user=user,
