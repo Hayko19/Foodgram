@@ -200,6 +200,31 @@ class RecipeSerializer(serializers.ModelSerializer):
             'cooking_time',
         ]
 
+    def validate_cooking_time(self, value):
+        if value <= 0:
+            raise ValidationError(
+                {"cooking_time": "Время приготовления должно быть больше нуля."}
+            )
+        return value
+
+    def validate_tags(self, value):
+        if not value:
+            raise ValidationError(
+                {"tags": "Список тегов не может быть пустым."}
+            )
+        seen_tags = set()
+        for tag_id in value:
+            if not Tag.objects.filter(id=tag_id).exists():
+                raise ValidationError({
+                    "tags": f"Тег с id {tag_id} не существует."
+                })
+            if tag_id in seen_tags:
+                raise ValidationError({
+                    "tags": f"Тег с id {tag_id} указан несколько раз."
+                })
+            seen_tags.add(tag_id)
+        return value
+
     def validate_ingredients(self, value):
         if not value:
             raise ValidationError(
@@ -209,10 +234,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         for ingredient in value:
             ingredient_id = ingredient.get('id')
             amount = ingredient.get('amount')
-            if ingredient_id is None or amount is None:
+            if amount <= 0:
                 raise ValidationError({
                     "ingredients": (
-                        "Каждый ингредиент должен содержать id и amount."
+                        "Количество ингредиента не может быть меньше одного."
                     )
                 })
             if ingredient_id in seen_ids:
