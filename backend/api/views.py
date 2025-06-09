@@ -203,6 +203,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             headers=headers
         )
 
+    def partial_update(self, request, *args, **kwargs):
+        """PATCH-запрос: вернуть вложенный ответ."""
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=partial
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # Используем сериализатор для чтения для ответа
+        read_serializer = RecipeReadSerializer(
+            instance,
+            context=self.get_serializer_context()
+        )
+        return Response(read_serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_short_link(self, request, pk=None):
         recipe = self.get_object()

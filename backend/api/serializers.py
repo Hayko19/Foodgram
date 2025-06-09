@@ -160,6 +160,36 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
+    def update(self, instance, validated_data):
+        # Обновление простых полей
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get(
+            'cooking_time',
+            instance.cooking_time
+        )
+        if 'image' in validated_data:
+            instance.image = validated_data['image']
+        instance.save()
+
+        # Обновление тегов
+        if 'tags' in validated_data:
+            instance.tags.set(validated_data['tags'])
+
+        # Обновление ингредиентов
+        if 'ingredients' in validated_data:
+            instance.recipe_ingredients.all().delete()
+            ingredients_data = validated_data['ingredients']
+            for ingredient in ingredients_data:
+                ingredient_id = ingredient['id']
+                amount = ingredient['amount']
+                instance.recipe_ingredients.create(
+                    ingredient_id=ingredient_id,
+                    amount=amount
+                )
+
+        return instance
+
     class Meta:
         model = Recipe
         fields = [
