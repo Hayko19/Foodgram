@@ -161,7 +161,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     def update(self, instance, validated_data):
-        # Обновление простых полей
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
         instance.cooking_time = validated_data.get(
@@ -171,12 +170,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         if 'image' in validated_data:
             instance.image = validated_data['image']
         instance.save()
-
-        # Обновление тегов
         if 'tags' in validated_data:
             instance.tags.set(validated_data['tags'])
-
-        # Обновление ингредиентов
         if 'ingredients' in validated_data:
             instance.recipe_ingredients.all().delete()
             ingredients_data = validated_data['ingredients']
@@ -207,7 +202,33 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate_ingredients(self, value):
         if not value:
-            raise ValidationError('Нужно указать хотя бы один ингредиент.')
+            raise ValidationError(
+                {"ingredients": "Список ингредиентов не может быть пустым."}
+            )
+        seen_ids = set()
+        for ingredient in value:
+            ingredient_id = ingredient.get('id')
+            amount = ingredient.get('amount')
+            if ingredient_id is None or amount is None:
+                raise ValidationError({
+                    "ingredients": (
+                        "Каждый ингредиент должен содержать id и amount."
+                    )
+                })
+            if ingredient_id in seen_ids:
+                raise ValidationError({
+                    "ingredients": (
+                        f"Ингредиент с id {ingredient_id} "
+                        "указан несколько раз."
+                    )
+                })
+            seen_ids.add(ingredient_id)
+            if not Ingredient.objects.filter(id=ingredient_id).exists():
+                raise ValidationError({
+                    "ingredients": (
+                        f"Ингредиент с id {ingredient_id} не существует."
+                    )
+                })
         return value
 
     def create(self, validated_data):

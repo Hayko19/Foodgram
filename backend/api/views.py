@@ -204,7 +204,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
     def partial_update(self, request, *args, **kwargs):
-        """PATCH-запрос: вернуть вложенный ответ."""
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
         serializer = self.get_serializer(
@@ -214,7 +213,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        # Используем сериализатор для чтения для ответа
         read_serializer = RecipeReadSerializer(
             instance,
             context=self.get_serializer_context()
