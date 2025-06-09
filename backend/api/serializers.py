@@ -161,6 +161,20 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     def update(self, instance, validated_data):
+        if 'ingredients' not in validated_data:
+            raise ValidationError(
+                {'ingredients': 'Поле ingredients обязательно при обновлении.'}
+            )
+        if 'tags' not in validated_data:
+            raise ValidationError(
+                {'tags': 'Поле tags обязательно при обновлении.'}
+            )
+        validated_data['ingredients'] = self.validate_ingredients(
+            validated_data['ingredients']
+        )
+        validated_data['tags'] = self.validate_tags(
+            validated_data['tags']
+        )
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
         instance.cooking_time = validated_data.get(
@@ -170,19 +184,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         if 'image' in validated_data:
             instance.image = validated_data['image']
         instance.save()
-        if 'tags' in validated_data:
-            instance.tags.set(validated_data['tags'])
-        if 'ingredients' in validated_data:
-            instance.recipe_ingredients.all().delete()
-            ingredients_data = validated_data['ingredients']
-            for ingredient in ingredients_data:
-                ingredient_id = ingredient['id']
-                amount = ingredient['amount']
-                instance.recipe_ingredients.create(
-                    ingredient_id=ingredient_id,
-                    amount=amount
-                )
-
+        instance.tags.set(validated_data['tags'])
+        instance.recipe_ingredients.all().delete()
+        for ingredient in validated_data['ingredients']:
+            instance.recipe_ingredients.create(
+                ingredient_id=ingredient['id'],
+                amount=ingredient['amount']
+            )
         return instance
 
     class Meta:
@@ -202,9 +210,11 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate_cooking_time(self, value):
         if value <= 0:
-            raise ValidationError(
-                {"cooking_time": "Время приготовления должно быть больше нуля."}
-            )
+            raise ValidationError({
+                "cooking_time": (
+                    "Время приготовления должно быть больше нуля."
+                )
+            })
         return value
 
     def validate_tags(self, value):
@@ -332,9 +342,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return True
 
     def get_recipes(self, obj):
-        recipes = obj.author.recipes.all()[:3]
+        request = self.context.get('request')
+        recipes_qs = obj.author.recipes.all()
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit is not None and recipes_limit.isdigit():
+            recipes_qs = recipes_qs[:int(recipes_limit)]
+        else:
+            recipes_qs = recipes_qs[:3]
         serializer = RecipeShortSerializer(
-            recipes,
+            recipes_qs,
             many=True,
             context=self.context
         )
@@ -348,10 +364,10 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            'avatar',
             'is_subscribed',
             'recipes',
-            'recipes_count'
+            'recipes_count',
+            'avatar',
         ]
 
 

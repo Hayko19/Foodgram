@@ -118,6 +118,14 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscriptions(self, request):
         user = request.user
         subscriptions = Subscription.objects.filter(user=user)
+        page = self.paginate_queryset(subscriptions)
+        if page is not None:
+            serializer = SubscriptionSerializer(
+                page,
+                many=True,
+                context={'request': request}
+            )
+            return self.get_paginated_response(serializer.data)
         serializer = SubscriptionSerializer(
             subscriptions,
             many=True,
@@ -134,13 +142,11 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscribe(self, request, pk=None):
         user = request.user
         author = self.get_object()  # пользователь, на которого подписываются
-
         if user == author:
             return Response(
                 {'detail': 'Нельзя подписаться на самого себя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         if request.method == 'POST':
             subscription, created = Subscription.objects.get_or_create(
                 user=user,
@@ -156,7 +162,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         elif request.method == 'DELETE':
             deleted, _ = Subscription.objects.filter(
                 user=user,
@@ -206,6 +211,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
+        if instance.author != request.user:
+            return Response(
+                {'detail': 'Вы не можете редактировать чужой рецепт.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = self.get_serializer(
             instance,
             data=request.data,
