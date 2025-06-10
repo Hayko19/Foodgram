@@ -1,0 +1,43 @@
+volumes:
+  pg_data:
+  static:
+
+services:
+  db:
+    image: postgres:13
+    restart: always
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    env_file: .env
+
+  backend:
+    image: hayko19/foodgram_backend
+    restart: always
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - static:/backend_static
+      - ./media:/app/media
+
+  frontend:
+    image: hayko19/foodgram_frontend
+    restart: always
+    env_file: .env
+    depends_on:
+      - backend
+    volumes:
+      - static:/frontend_static
+
+  gateway:
+    image: hayko19/foodgram_nginx
+    restart: always
+    env_file: .env
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - 7000:80
+    volumes:
+      - static:/static  
+      - ./media:/app/media

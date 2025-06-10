@@ -273,12 +273,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         for ingredient in value:
             ingredient_id = ingredient.get('id')
             amount = ingredient.get('amount')
+            try:
+                amount = int(amount)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    'Количество ингредиента должно быть числом.'
+                )
             if amount <= 0:
-                raise ValidationError({
-                    "ingredients": (
-                        "Количество ингредиента не может быть меньше одного."
-                    )
-                })
+                raise serializers.ValidationError(
+                    'Количество ингредиента должно быть больше 0.'
+                )
             if ingredient_id in seen_ids:
                 raise ValidationError({
                     "ingredients": (
