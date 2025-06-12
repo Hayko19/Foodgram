@@ -115,6 +115,10 @@ TIME_ZONE = 'UTC'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://foodgram-online.zapto.org'
+]
+
 USE_I18N = True
 
 USE_L10N = True
