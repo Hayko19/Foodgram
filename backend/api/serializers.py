@@ -214,6 +214,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
         tags_data = validated_data.pop('tags')
+        validated_data['author'] = self.context['request'].user
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags_data)
         recipe_ingredients = [
@@ -277,6 +278,24 @@ class RecipeSerializer(serializers.ModelSerializer):
                     )
                 })
             seen_ids.add(ingredient_id)
+        return value
+
+    def validate_tags(self, value):
+        if not value:
+            raise ValidationError(
+                {"tags": "Список тегов не может быть пустым."}
+            )
+        seen_ids = set()
+        for tag in value:
+            tag_id = tag.id
+            if tag_id in seen_ids:
+                raise ValidationError({
+                    "tags": (
+                        f"Тег с id {tag_id} "
+                        "указан несколько раз."
+                    )
+                })
+            seen_ids.add(tag_id)
         return value
 
     def get_is_favorited(self, obj):
