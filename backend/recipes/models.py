@@ -1,16 +1,13 @@
 import uuid
 
-from django.db import models
-from users.models import MyUser
-from .constants import (
-    MAX_LENGTH_NAME,
-    MAX_LENGTH_MEASUREMENT_UNIT,
-    MAX_COOKING_TIME,
-    MIN_COOKING_TIME,
-    MAX_INGREDIENTS_PER_RECIPE,
-    MIN_INGREDIENTS_PER_RECIPE
-)
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models
+
+from users.models import MyUser
+
+from .constants import (MAX_COOKING_TIME, MAX_INGREDIENTS_PER_RECIPE,
+                        MAX_LENGTH_MEASUREMENT_UNIT, MAX_LENGTH_NAME,
+                        MIN_COOKING_TIME, MIN_INGREDIENTS_PER_RECIPE)
 
 
 class Tag(models.Model):

@@ -1,6 +1,6 @@
 from django.contrib import admin
-
 from django.utils.safestring import mark_safe
+
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import MyUser
 

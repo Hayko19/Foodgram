@@ -1,4 +1,4 @@
-from django.db.models import Sum, F
+from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
@@ -7,29 +7,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import RecipeFilter, IngredientFilter
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscription,
-    Tag,
-    RecipeIngredient
-)
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Subscription, Tag)
 from users.models import MyUser
-from .serializers import (
-    FavoriteSerializer,
-    IngredientSerializer,
-    RecipeReadSerializer,
-    RecipeSerializer,
-    ShoppingCartSerializer,
-    SubscriptionSerializer,
-    TagSerializer,
-    UserAvatarSerializer,
-    UserCreateSerializer,
-    UserListSerializer
-)
+
+from .filters import IngredientFilter, RecipeFilter
+from .serializers import (FavoriteSerializer, IngredientSerializer,
+                          RecipeReadSerializer, RecipeSerializer,
+                          ShoppingCartSerializer, SubscriptionSerializer,
+                          TagSerializer, UserAvatarSerializer,
+                          UserCreateSerializer, UserListSerializer)
 
 
 def short_link_redirect(request, short_code):
@@ -325,7 +312,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by('name')
         )
         lines = [
-            f"{item['name']}. Единица измерения: {item['unit']}, количество: {item['amount']}."
+            f'{item["name"]}. Единица измерения: {item["unit"]}, '
+            f'количество: {item["amount"]}.'
             for item in ingredients
         ]
         content = "\n".join(lines)
