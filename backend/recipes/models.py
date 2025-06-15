@@ -188,28 +188,3 @@ class Favorite(models.Model):
                 name='unique_user_recipe_favorite'
             )
         ]
-
-
-class Subscription(models.Model):
-    user = models.ForeignKey(
-        MyUser,
-        on_delete=models.CASCADE,
-        related_name='subscriptions',
-        verbose_name='Подписчик'
-    )
-    author = models.ForeignKey(
-        MyUser,
-        on_delete=models.CASCADE,
-        related_name='subscribers',
-        verbose_name='Автор'
-    )
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_user_author_subscription'
-            )
-        ]
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'

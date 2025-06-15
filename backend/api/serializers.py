@@ -3,8 +3,9 @@ from rest_framework.exceptions import ValidationError
 
 from api.fields import Base64ImageField
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Subscription, Tag)
-from users.models import MyUser
+                            ShoppingCart, Tag)
+from users.models import MyUser, Subscription
+from .constants import DEFAULT_RECIPES_LIMIT
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
@@ -365,27 +366,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
 
-    def get_recipes_count(self, obj):
-        return obj.author.recipes.count()
-
-    def get_is_subscribed(self, obj):
-        return True
-
-    def get_recipes(self, obj):
-        request = self.context.get('request')
-        recipes_qs = obj.author.recipes.all()
-        recipes_limit = request.query_params.get('recipes_limit')
-        if recipes_limit is not None and recipes_limit.isdigit():
-            recipes_qs = recipes_qs[:int(recipes_limit)]
-        else:
-            recipes_qs = recipes_qs[:3]
-        serializer = RecipeShortSerializer(
-            recipes_qs,
-            many=True,
-            context=self.context
-        )
-        return serializer.data
-
     class Meta:
         model = Subscription
         fields = (
@@ -399,6 +379,27 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'recipes_count',
             'avatar',
         )
+
+    def get_recipes_count(self, obj):
+        return obj.author.recipes.count()
+
+    def get_is_subscribed(self, obj):
+        return True
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes_qs = obj.author.recipes.all()
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit is not None and recipes_limit.isdigit():
+            recipes_qs = recipes_qs[:int(recipes_limit)]
+        else:
+            recipes_qs = recipes_qs[:DEFAULT_RECIPES_LIMIT]
+        serializer = RecipeShortSerializer(
+            recipes_qs,
+            many=True,
+            context=self.context
+        )
+        return serializer.data
 
 
 class IngredientSerializer(serializers.ModelSerializer):

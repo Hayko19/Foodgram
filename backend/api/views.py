@@ -8,8 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Subscription, Tag)
-from users.models import MyUser
+                            ShoppingCart, Tag)
+from users.models import MyUser, Subscription
 
 from .filters import IngredientFilter, RecipeFilter
 from .serializers import (FavoriteSerializer, IngredientSerializer,
@@ -17,6 +17,8 @@ from .serializers import (FavoriteSerializer, IngredientSerializer,
                           ShoppingCartSerializer, SubscriptionSerializer,
                           TagSerializer, UserAvatarSerializer,
                           UserCreateSerializer, UserListSerializer)
+from .permissions import IsAuthorOrReadOnly
+from .paginators import CustomPagination
 
 
 def short_link_redirect(request, short_code):
@@ -187,47 +189,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.select_related('author').prefetch_related(
         'ingredients', 'tags', 'recipe_ingredients__ingredient'
     )
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAuthorOrReadOnly
+    )
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return RecipeReadSerializer
         return RecipeSerializer
 
-    def destroy(self, request, *args, **kwargs):
-        recipe = self.get_object()
-        if recipe.author != request.user:
-            return Response(
-                {'detail': 'Вы не можете удалять чужие рецепты.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        self.perform_destroy(recipe)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def partial_update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', True)
-        instance = self.get_object()
-        if instance.author != request.user:
-            return Response(
-                {'detail': 'Вы не можете редактировать чужой рецепт.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        serializer = self.get_serializer(
-            instance,
-            data=request.data,
-            partial=partial
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
     @action(detail=True, methods=('get',), url_path='get-link')
     def get_short_link(self, request, pk=None):
         recipe = self.get_object()
-        url = request.build_absolute_uri(f'/api/s/{recipe.short_uuid}/')
-        return Response({"short-link": url})
+        url = request.build_absolute_uri(f'/s/{recipe.short_uuid}/')
+        return Response({'short-link': url})
 
     def _add_to(self, request, pk, model, serializer_class, error_message):
         recipe = self.get_object()
