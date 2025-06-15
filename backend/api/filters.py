@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 
-from .models import Recipe
+from recipes.models import Recipe
+from recipes.models import Tag, Ingredient
 
 
 class RecipeFilter(filters.FilterSet):
@@ -9,7 +10,11 @@ class RecipeFilter(filters.FilterSet):
     Позволяет фильтровать рецепты по автору, тегам,
     наличию в списке покупок и избранном.
     """
-    tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
+    tags = filters.ModelMultipleChoiceFilter(
+        field_name='tags__slug',
+        to_field_name='slug',
+        queryset=Tag.objects.all()
+    )
     is_in_shopping_cart = filters.BooleanFilter(
         method='filter_is_in_shopping_cart'
     )
@@ -17,7 +22,7 @@ class RecipeFilter(filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ['author', 'tags']
+        fields = ('author', 'tags')
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         user = getattr(self.request, 'user', None)
@@ -34,3 +39,11 @@ class RecipeFilter(filters.FilterSet):
         if value is False:
             return queryset.exclude(favorited_by__user=user)
         return queryset
+
+
+class IngredientFilter(filters.FilterSet):
+    name = filters.CharFilter(field_name='name', lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ['name']

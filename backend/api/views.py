@@ -8,14 +8,28 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import RecipeFilter
-from .models import (Favorite, Ingredient, MyUser, Recipe, ShoppingCart,
-                     Subscription, Tag)
-from .serializers import (FavoriteSerializer, IngredientSerializer,
-                          RecipeReadSerializer, RecipeSerializer,
-                          ShoppingCartSerializer, SubscriptionSerializer,
-                          TagSerializer, UserAvatarSerializer,
-                          UserCreateSerializer, UserListSerializer)
+from .filters import RecipeFilter, IngredientFilter
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag
+)
+from users.models import MyUser
+from .serializers import (
+    FavoriteSerializer,
+    IngredientSerializer,
+    RecipeReadSerializer,
+    RecipeSerializer,
+    ShoppingCartSerializer,
+    SubscriptionSerializer,
+    TagSerializer,
+    UserAvatarSerializer,
+    UserCreateSerializer,
+    UserListSerializer
+)
 
 
 def short_link_redirect(request, short_code):
@@ -31,14 +45,9 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__istartswith=name)
-        return queryset
+    permission_classes = (permissions.AllowAny,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class UserAvatarUpdateView(generics.UpdateAPIView):
@@ -47,7 +56,7 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
     Позволяет пользователю загрузить новый аватар.
     """
     serializer_class = UserAvatarSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -65,7 +74,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = MyUser.objects.all()
     serializer_class = UserListSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = (permissions.AllowAny,)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -74,8 +83,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['post'],
-        permission_classes=[IsAuthenticated]
+        methods=('post',),
+        permission_classes=(IsAuthenticated,)
     )
     def set_password(self, request):
         user = request.user
@@ -97,8 +106,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated]
+        methods=('get',),
+        permission_classes=(IsAuthenticated,)
     )
     def me(self, request):
         user = request.user
@@ -107,9 +116,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
+        methods=('get',),
         url_path='subscriptions',
-        permission_classes=[IsAuthenticated]
+        permission_classes=(IsAuthenticated,)
     )
     def subscriptions(self, request):
         user = request.user
@@ -131,9 +140,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
+        methods=('post', 'delete'),
         url_path='subscribe',
-        permission_classes=[IsAuthenticated]
+        permission_classes=(IsAuthenticated,)
     )
     def subscribe(self, request, pk=None):
         user = request.user
@@ -179,7 +188,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
-    permission_classes = [permissions.AllowAny]
+    permission_classes = (permissions.AllowAny,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -189,8 +198,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     Также поддерживает действия для избранного и списка покупок.
     """
     queryset = Recipe.objects.all()
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
@@ -244,15 +253,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         return Response(read_serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['get'], url_path='get-link')
+    @action(detail=True, methods=('get',), url_path='get-link')
     def get_short_link(self, request, pk=None):
         recipe = self.get_object()
         base_url = "https://foodgram.example.org/s/"
         return Response({"short-link": base_url + recipe.short_uuid})
 
     @action(
-        detail=True, methods=['post', 'delete'],
-        permission_classes=[permissions.IsAuthenticated]
+        detail=True, methods=('post', 'delete'),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
@@ -282,9 +291,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=['get'],
+        methods=('get',),
         url_path='download_shopping_cart',
-        permission_classes=[permissions.IsAuthenticated]
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
         user = request.user
@@ -312,8 +321,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[permissions.IsAuthenticated],
+        methods=('post', 'delete'),
+        permission_classes=(permissions.IsAuthenticated,),
         url_path='favorite'
     )
     def favorite(self, request, pk=None):

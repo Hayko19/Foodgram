@@ -4,8 +4,16 @@ from django.core.files.base import ContentFile
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from .models import (Favorite, Ingredient, MyUser, Recipe, RecipeIngredient,
-                     ShoppingCart, Subscription, Tag)
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Subscription,
+    Tag
+)
+from users.models import MyUser
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
@@ -38,14 +46,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = MyUser
-        fields = [
+        fields = (
             'email',
             'id',
             'username',
             'first_name',
             'last_name',
             'password'
-        ]
+        )
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -84,10 +92,15 @@ class UserListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MyUser
-        fields = [
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'avatar'
-        ]
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'avatar'
+        )
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):
@@ -95,7 +108,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MyUser
-        fields = ['avatar']
+        fields = ('avatar',)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -105,7 +118,7 @@ class TagSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Tag
-        fields = ['id', 'name', 'slug']
+        fields = ('id', 'name', 'slug')
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
@@ -144,7 +157,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = [
+        fields = (
             'id',
             'tags',
             'author',
@@ -155,7 +168,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time',
-        ]
+        )
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
@@ -224,7 +237,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = [
+        fields = (
             'id',
             'tags',
             'author',
@@ -235,7 +248,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             'image',
             'text',
             'cooking_time',
-        ]
+        )
 
     def validate_cooking_time(self, value):
         if value <= 0:
@@ -338,7 +351,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingCart
-        fields = ['id', 'name', 'image', 'cooking_time']
+        fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -353,7 +366,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Favorite
-        fields = ['id', 'name', 'image', 'cooking_time']
+        fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -403,7 +416,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subscription
-        fields = [
+        fields = (
             'email',
             'id',
             'username',
@@ -413,7 +426,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'recipes',
             'recipes_count',
             'avatar',
-        ]
+        )
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -422,4 +435,4 @@ class IngredientSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Ingredient
-        fields = ['id', 'name', 'measurement_unit']
+        fields = ('id', 'name', 'measurement_unit')
