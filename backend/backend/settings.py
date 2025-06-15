@@ -128,6 +128,6 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/backend_static/'
-STATIC_ROOT = '/backend_static/static'
+STATIC_ROOT = '/backend_static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
