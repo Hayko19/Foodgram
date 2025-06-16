@@ -295,7 +295,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             f'количество: {item["amount"]}.'
             for item in ingredients
         ]
-        content = "\n".join(lines)
+        content = '\n'.join(lines)
         response = HttpResponse(
             content,
             content_type='text/plain; charset=utf-8'

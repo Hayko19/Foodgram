@@ -205,53 +205,36 @@ class RecipeSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
 
-    def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
-        tags_data = validated_data.pop('tags')
-        validated_data['author'] = self.context['request'].user
-        recipe = Recipe.objects.create(**validated_data)
-        recipe.tags.set(tags_data)
-        recipe_ingredients = [
+    def _create_ingredients(self, ingredients_data, recipe):
+        ingredient_objs = [
             RecipeIngredient(
                 recipe=recipe,
-                ingredient=item['id'],
-                amount=item['amount']
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
             )
-            for item in ingredients_data
+            for ingredient in ingredients_data
         ]
-        RecipeIngredient.objects.bulk_create(recipe_ingredients)
+        RecipeIngredient.objects.bulk_create(ingredient_objs)
+
+    def create(self, validated_data):
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(**validated_data)
+        self._create_ingredients(ingredients_data, recipe)
         return recipe
 
     def update(self, instance, validated_data):
-        if 'ingredients' not in validated_data:
-            raise ValidationError(
-                {'ingredients': 'Поле ingredients обязательно при обновлении.'}
-            )
-        if 'tags' not in validated_data:
-            raise ValidationError(
-                {'tags': 'Поле tags обязательно при обновлении.'}
-            )
-        ingredients_data = validated_data.pop('ingredients')
-        tags_data = validated_data.pop('tags')
+        ingredients_data = validated_data.pop('ingredients', None)
         instance = super().update(instance, validated_data)
-        instance.tags.set(tags_data)
-        instance.recipe_ingredients.all().delete()
-        recipe_ingredients = [
-            RecipeIngredient(
-                recipe=instance,
-                ingredient=item['id'],
-                amount=item['amount']
-            )
-            for item in ingredients_data
-        ]
-        RecipeIngredient.objects.bulk_create(recipe_ingredients)
+        if ingredients_data is not None:
+            instance.ingredients.clear()
+            self._create_ingredients(ingredients_data, instance)
         return instance
 
     def validate_cooking_time(self, value):
         if value <= 0:
             raise ValidationError({
-                "cooking_time": (
-                    "Время приготовления должно быть больше нуля."
+                'cooking_time': (
+                    'Время приготовления должно быть больше нуля.'
                 )
             })
         return value
@@ -259,16 +242,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_ingredients(self, value):
         if not value:
             raise ValidationError(
-                {"ingredients": "Список ингредиентов не может быть пустым."}
+                {'ingredients': 'Список ингредиентов не может быть пустым.'}
             )
         seen_ids = set()
         for ingredient in value:
             ingredient_id = ingredient['id']
             if ingredient_id in seen_ids:
                 raise ValidationError({
-                    "ingredients": (
-                        f"Ингредиент с id {ingredient_id} "
-                        "указан несколько раз."
+                    'ingredients': (
+                        f'Ингредиент с id {ingredient_id} '
+                        'указан несколько раз.'
                     )
                 })
             seen_ids.add(ingredient_id)
@@ -277,16 +260,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     def validate_tags(self, value):
         if not value:
             raise ValidationError(
-                {"tags": "Список тегов не может быть пустым."}
+                {'tags': 'Список тегов не может быть пустым.'}
             )
         seen_ids = set()
         for tag in value:
             tag_id = tag.id
             if tag_id in seen_ids:
                 raise ValidationError({
-                    "tags": (
-                        f"Тег с id {tag_id} "
-                        "указан несколько раз."
+                    'tags': (
+                        f'Тег с id {tag_id} '
+                        'указан несколько раз.'
                     )
                 })
             seen_ids.add(tag_id)
