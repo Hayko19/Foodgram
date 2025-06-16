@@ -12,13 +12,13 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
 from users.models import MyUser, Subscription
 
 from .filters import IngredientFilter, RecipeFilter
+from .paginators import CustomPagination
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializer,
                           RecipeReadSerializer, RecipeSerializer,
                           ShoppingCartSerializer, SubscriptionSerializer,
                           TagSerializer, UserAvatarSerializer,
                           UserCreateSerializer, UserListSerializer)
-from .permissions import IsAuthorOrReadOnly
-from .paginators import CustomPagination
 
 
 def short_link_redirect(request, short_code):
