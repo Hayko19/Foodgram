@@ -1,9 +1,8 @@
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
-
 from api.fields import Base64ImageField
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from users.models import MyUser, Subscription
 
 from .constants import DEFAULT_RECIPES_LIMIT
@@ -210,7 +209,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredient_objs = [
             RecipeIngredient(
                 recipe=recipe,
-                ingredient=ingredient['ingredient'],
+                ingredient=ingredient['id'],
                 amount=ingredient['amount']
             )
             for ingredient in ingredients_data
@@ -219,13 +218,19 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ingredients_data = validated_data.pop('ingredients')
+        tags = validated_data.pop('tags')
+        validated_data['author'] = self.context['request'].user
         recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
         self._create_ingredients(ingredients_data, recipe)
         return recipe
 
     def update(self, instance, validated_data):
         ingredients_data = validated_data.pop('ingredients', None)
+        tags = validated_data.pop('tags', None)
         instance = super().update(instance, validated_data)
+        if tags is not None:
+            instance.tags.set(tags)
         if ingredients_data is not None:
             instance.ingredients.clear()
             self._create_ingredients(ingredients_data, instance)

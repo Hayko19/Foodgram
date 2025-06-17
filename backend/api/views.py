@@ -1,14 +1,14 @@
+from django.conf import settings
 from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from users.models import MyUser, Subscription
 
 from .filters import IngredientFilter, RecipeFilter
@@ -21,9 +21,12 @@ from .serializers import (FavoriteSerializer, IngredientSerializer,
                           UserCreateSerializer, UserListSerializer)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def short_link_redirect(request, short_code):
     recipe = get_object_or_404(Recipe, short_uuid=short_code)
-    return redirect(f'/recipes/{recipe.id}/')
+    redirect_url = f'/recipes/{recipe.id}/'
+    return redirect(redirect_url)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -205,7 +208,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=('get',), url_path='get-link')
     def get_short_link(self, request, pk=None):
         recipe = self.get_object()
-        url = request.build_absolute_uri(f'/s/{recipe.short_uuid}/')
+        url = f'{settings.DOMAIN_NAME}/s/{recipe.short_uuid}'
         return Response({'short-link': url})
 
     def _add_to(self, request, pk, model, serializer_class, error_message):

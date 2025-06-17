@@ -2,7 +2,6 @@ import uuid
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
 from users.models import MyUser
 
 from .constants import (MAX_COOKING_TIME, MAX_INGREDIENTS_PER_RECIPE,
